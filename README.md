@@ -1,2 +1,2 @@
 # heyegiene
-Website to help reduce bad screen usage and the resulting eye strain
+Website to help reduce bad screen usage habits and the resulting eye strain
