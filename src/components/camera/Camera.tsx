@@ -1,16 +1,21 @@
 import "./Camera.css";
 import { useRef, useEffect, useState } from "react";
 import { DrawingUtils, FaceLandmarker } from "@mediapipe/tasks-vision";
+import type { FaceLandmarkerResult } from "@mediapipe/tasks-vision";
 import { createFaceLandmarker, getFaceLandmarker } from "../../mediapipe/faceLandmarker.ts";
 import BlendShapesPanel from "./BlendShapesPanel.tsx";
 
 
 type CameraProps = {
     debug?: boolean; // show overlay + blendshapes if true
+    // onResults?: React.Dispatch<
+    //     React.SetStateAction<FaceLandmarkerResult | null>
+    // >;
+    onResults?: (results: FaceLandmarkerResult) => void;
 };
 
 
-export default function Camera({ debug = false }: CameraProps) {
+export default function Camera({ debug = false, onResults }: CameraProps) {
     const videoRef = useRef<HTMLVideoElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null); // canvas used to draw landmarks
     // react state variable holding array of blendShapes from mediapipe
@@ -94,21 +99,16 @@ export default function Camera({ debug = false }: CameraProps) {
             try {
                 const faceLandmarker = getFaceLandmarker();
                 results = await faceLandmarker.detectForVideo(video, performance.now());
-                /*
-                FaceLandmarkerResult returns:
-                - Detected face landmarks in normalized image coordinates.
-                  faceLandmarks: NormalizedLandmark[][];
 
-                - Optional face blendshapes results.
-                  faceBlendshapes: Classifications[];
+               if (onResults) {
+                onResults(results);
+               }
 
-                - Optional facial transformation matrix.
-                  facialTransformationMatrixes: Matrix[];
-                */
             } catch (error) {
                 console.error("FaceLandmarker error:", error);
                 animationFrameId = requestAnimationFrame(processFrame);
                 return;
+
             }
 
             // Clear overlay
@@ -137,11 +137,11 @@ export default function Camera({ debug = false }: CameraProps) {
                         FaceLandmarker.FACE_LANDMARKS_FACE_OVAL,
                         { color: "#E0E0E0" }
                     );
-                    // drawingUtils.drawConnectors(
-                    //     landmarks,
-                    //     FaceLandmarker.FACE_LANDMARKS_LIPS,
-                    //     { color: "#E0E0E0" }
-                    // );
+                    drawingUtils.drawConnectors(
+                        landmarks,
+                        FaceLandmarker.FACE_LANDMARKS_LIPS,
+                        { color: "#E0E0E0" }
+                    );
                 }
             }
 

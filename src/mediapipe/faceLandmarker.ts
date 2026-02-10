@@ -13,6 +13,7 @@ export async function createFaceLandmarker() {
       delegate: "GPU",
     },
     outputFaceBlendshapes: true,
+    outputFacialTransformationMatrixes: true, // transformation mapping from canoncial face model to detected face; encodes rotation, translation, and scale
     runningMode: "VIDEO",
     numFaces: 1,
   });
