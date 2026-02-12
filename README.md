@@ -4,8 +4,10 @@ Website to help reduce bad screen usage habits and the resulting eye strain.
 Computer Vision Syndrome
 
 ## To do:
-1. Improve the blink detection algorithm: reset time every time eyes are not detected
-2. Improve the blink detection algorithm: try adaptive thresholding with rolling average
+1. Stop detecting blinks when eye region is covered
+2. ~~Stop blink alerts when camera is off~~
+3. 
+4. Improve the blink detection algorithm: try adaptive thresholding with rolling average
 
 ## Dev notes
 Possible limitations of web app:
@@ -19,14 +21,13 @@ Possible limitations of web app:
     - Mediapipe [facemesh](https://storage.googleapis.com/mediapipe-assets/Model%20Card%20MediaPipe%20Face%20Mesh%20V2.pdf)
 
 - Blink detection techniques:
-    - Use of two thresholds to create deadband zone and handle hysteresis
     - BlinkCounterBlendshapes thresholds blink confidence scores from the blendshape model to count blinks
         - Problem: when head is tilted up, blendshapes model fails to detect blinks
+        - Use of two thresholds to create deadband zone and handle hysteresis
     - BlinkCounterEAR calculates Eye Aspect Ratio (EAR) from the certain eye landmark points and then thresholds this area to detect blinks
-        - Problem: baseline EAR is different for individuals
-        - Solutions to try instead of a hard coded threshold:
-            - Adaptive threshold - register blink if EAR drops below that person's
-            baseline
+        - Problem: baseline EAR is different for individuals and at different head tilts
+            - Solutions to try: adaptive threshold - register blink if EAR drops below that person's baseline
+    - 
 
 - Alert trigger options
     - Trigger when time elapsed since last blink > threshold

@@ -14,6 +14,7 @@ function App() {
   const [faceResults, setFaceResults] = useState<FaceLandmarkerResult | null>(null);
   const [blinkCountBlendshapes, setBlinkCountBlendshapes] = useState(0);
   const [blinkCountEAR, setBlinkCountEAR] = useState(0);
+  const [isCameraRunning, setIsCameraRunning] = useState(false);
   /*
   FaceLandmarkerResult returns:
   - Detected face landmarks in normalized image coordinates.
@@ -35,6 +36,7 @@ function App() {
 
   useEffect(() => {
     if (faceResults) {
+
       const countBlendshapes = blinkCounterBlendshapesRef.current.update(faceResults.faceBlendshapes);
       setBlinkCountBlendshapes(countBlendshapes);
 
@@ -47,9 +49,9 @@ function App() {
     const interval = setInterval(() => {
       if (blinkCounterEARRef.current.isTimeLastBlinkAlert()) {
         // TODO: clean this up once move to Electron
-        if (!document.hidden) { // only play if tab is active
+        if (!document.hidden && isCameraRunning) { // only play if tab is active and camera is on
           // alertSound.currentTime = 0;
-          // console.log('Blink alert');
+          console.log('Blink alert');
           // alertSoundRef.current.play().catch((err) => {
           //   console.warn("Cannot play sound:", err);
           // });
@@ -67,7 +69,7 @@ function App() {
       <Header />
       <main>
         {/* camera tool here */}
-        <Camera debug={true} onResults={setFaceResults} />
+        <Camera debug={true} onResults={setFaceResults} onCameraStateChange={setIsCameraRunning} />
         <p>Blink count from blendshapes: {blinkCountBlendshapes}</p>
         <p>Blink count from EAR: {blinkCountEAR}</p>
       </main>

@@ -30,6 +30,8 @@ export class BlinkCounterBlendshapes {
 
         const avgBlink = (left + right) / 2;
 
+        // console.log(avgBlink);
+
         // const lookDownLeft = categories.find(
         //     (c: any) => c.categoryName === "eyeLookDownLeft"
         // )?.score ?? 0;

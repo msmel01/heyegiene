@@ -3,6 +3,7 @@ import { useRef, useEffect, useState } from "react";
 import { DrawingUtils, FaceLandmarker } from "@mediapipe/tasks-vision";
 import type { FaceLandmarkerResult } from "@mediapipe/tasks-vision";
 import { createFaceLandmarker, getFaceLandmarker } from "../../mediapipe/faceLandmarker.ts";
+import { createFaceDetector, getFaceDetector } from "../../mediapipe/faceDetector.ts";
 import BlendShapesPanel from "./BlendShapesPanel.tsx";
 
 
@@ -12,12 +13,15 @@ type CameraProps = {
     //     React.SetStateAction<FaceLandmarkerResult | null>
     // >;
     onResults?: (results: FaceLandmarkerResult) => void;
+    onCameraStateChange: (isRunning: boolean) => void;
 };
 
 
-export default function Camera({ debug = false, onResults }: CameraProps) {
+export default function Camera({ debug = false, onResults, onCameraStateChange }: CameraProps) {
     const videoRef = useRef<HTMLVideoElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null); // canvas used to draw landmarks
+    const streamRef = useRef<MediaStream | null>(null);
+
     // react state variable holding array of blendShapes from mediapipe
     const [blendShapes, setBlendShapes] = useState<any[]>([]);
     // react state variable tracking whether webcam and detection loop are running
@@ -28,6 +32,7 @@ export default function Camera({ debug = false, onResults }: CameraProps) {
         async function init() {
             // Initialize FaceLandmarker and webcam
             await createFaceLandmarker();
+            await createFaceDetector();
         }
         init();
     }, []);
@@ -41,6 +46,7 @@ export default function Camera({ debug = false, onResults }: CameraProps) {
 
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+            streamRef.current = stream;
             video.srcObject = stream; // assign MediaStream to connect the camera feed
 
             await new Promise<void>((resolve) => {
@@ -48,6 +54,7 @@ export default function Camera({ debug = false, onResults }: CameraProps) {
             });
 
             setRunning(true);
+            onCameraStateChange(true);
 
             // Match canvas size to video
             canvas.width = video.videoWidth;
@@ -58,6 +65,31 @@ export default function Camera({ debug = false, onResults }: CameraProps) {
         } catch (err) {
             console.error("Could not start webcam:", err);
         }
+    };
+
+    // Stop webcam
+    const stopWebcam = () => {
+        const video = videoRef.current;
+
+        if (streamRef.current) {
+            streamRef.current.getTracks().forEach(track => track.stop());
+            streamRef.current = null;
+        }
+
+        if (video) {
+            video.srcObject = null;
+        }
+
+        const canvas = canvasRef.current;
+        if (canvas) {
+            const ctx = canvas.getContext("2d"); // want to draw in 2D
+            if (ctx) {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+            }
+        }
+
+        setRunning(false);
+        onCameraStateChange(false);
     };
 
     // Detection loop
@@ -88,21 +120,37 @@ export default function Camera({ debug = false, onResults }: CameraProps) {
             // OR
             // 4 -> enough to play smoothly
             // to start calculating / drawing landmarks
-            
-            // TODO: clean this up later
-            // if (canvas.width !== video.videoWidth || canvas.height !== video.videoHeight) {
-            //     canvas.width = video.videoWidth;
-            //     canvas.height = video.videoHeight;
-            // }
 
             let results;
             try {
+                // Check to see if eyes are detected
+                const faceDetector = getFaceDetector();
+
+                const detections = faceDetector.detectForVideo(
+                    video,
+                    performance.now()
+                );
+
+                // probably need to improve this
+                if (!detections.detections.length) { // no face is detected
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    animationFrameId = requestAnimationFrame(processFrame);
+                    return;
+                } else if (detections.detections[0].categories[0].score < 0.85) { // face is not confidently detected
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    animationFrameId = requestAnimationFrame(processFrame);
+                    return;
+                }
+                // console.log(detections.detections[0].categories[0]);
+
                 const faceLandmarker = getFaceLandmarker();
                 results = await faceLandmarker.detectForVideo(video, performance.now());
+                
+                console.log(results);
 
-               if (onResults) {
-                onResults(results);
-               }
+                if (onResults) {
+                    onResults(results);
+                }
 
             } catch (error) {
                 console.error("FaceLandmarker error:", error);
@@ -171,17 +219,25 @@ export default function Camera({ debug = false, onResults }: CameraProps) {
             )}
 
             {debug && <canvas ref={canvasRef} />}
+            
+            <button
+                onClick={running ? stopWebcam : startWebcam}
+                style={{ marginTop: "1rem", padding: "0.5rem 1rem", fontSize: "16px", cursor: "pointer" }}
+            >
+                {running ? "Stop Webcam" : "Start Webcam"}
+            </button>
 
             {debug && <BlendShapesPanel blendShapes={blendShapes} />}
 
-            {!running && (
+            {/* {!running && (
                 <button
-                    onClick={startWebcam}
+                    onClick={running ? stopWebcam : startWebcam}
                     style={{ marginTop: "1rem", padding: "0.5rem 1rem", fontSize: "16px", cursor: "pointer" }}
                 >
-                    Start Webcam
+                    {running ? "Stop Webcam" : "Start Webcam"}
                 </button>
-            )}
+            )} */}
+
         </div>
     );
 }

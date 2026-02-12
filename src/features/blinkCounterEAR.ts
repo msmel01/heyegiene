@@ -17,6 +17,7 @@ p1: 362, p2: 385, p3: 387, p4: 263, p5: 373, p6: 380
 export class BlinkCounterEAR {
     private blinkCount = 0;
     private isEyeClosed = false;
+    // private lastBlinkTime = null;
     private lastBlinkTime = Date.now();
     
     private readonly TIME_LAST_BLINK_THRESHOLD = 5000; // 6 seconds
@@ -43,8 +44,6 @@ export class BlinkCounterEAR {
         
         const avgEAR = (leftEyeEAR + rightEyeEAR) / 2;
         
-        console.log(avgEAR);
-
         // Eye just closed
         if (!this.isEyeClosed && avgEAR < this.CLOSE_THRESHOLD) {
             this.isEyeClosed = true;
@@ -75,6 +74,7 @@ export class BlinkCounterEAR {
     reset() {
         this.blinkCount = 0;
         this.isEyeClosed = false;
+        // this.lastBlinkTime = null;
         this.lastBlinkTime = Date.now();
     }
 }
