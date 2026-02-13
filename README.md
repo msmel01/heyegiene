@@ -5,6 +5,10 @@ Computer Vision Syndrome
 
 ## To do:
 1. Stop detecting blinks when eye region is covered
+    - ~~Use Mediapipe to stop when face detection confidence score is below certain threshold~~
+    - Store histogram of eyes during calibration period to determine if eyes are occluded (Bhattacharyya coefficient)
+    - Use edge-based segmentation to detect abrupt break or unnatural edges
+    - Feature matching techniques like SIFT and HOG with calibrated images
 2. ~~Stop blink alerts when camera is off~~
 3. 
 4. Improve the blink detection algorithm: try adaptive thresholding with rolling average
