@@ -8,18 +8,23 @@ import { createFaceDetector, getFaceDetector } from "../../mediapipe/faceDetecto
 import { cropEye } from "../../utils/cropEye.ts";
 import BlendShapesPanel from "./BlendShapesPanel.tsx";
 
+// TODO: make a separate module for headpose calculations
+type HeadPose = {
+    pitch: number;
+    yaw: number;
+    roll: number;
+};
 
 type CameraProps = {
     debug?: boolean; // show overlay + blendshapes if true
-    // onResults?: React.Dispatch<
-    //     React.SetStateAction<FaceLandmarkerResult | null>
-    // >;
     onResults?: (results: FaceLandmarkerResult) => void;
     onCameraStateChange: (isRunning: boolean) => void;
+    onFpsChange?: (fps: number) => void;
+    onHeadPoseChange?: (pose: HeadPose) => void;
 };
 
 
-export default function Camera({ debug = false, onResults, onCameraStateChange }: CameraProps) {
+export default function Camera({ debug = false, onResults, onCameraStateChange, onFpsChange, onHeadPoseChange }: CameraProps) {
     const videoRef = useRef<HTMLVideoElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null); // canvas used to draw landmarks
     const streamRef = useRef<MediaStream | null>(null);
@@ -33,6 +38,10 @@ export default function Camera({ debug = false, onResults, onCameraStateChange }
     const [calibrating, setCalibrating] = useState(false);
     const calibrationStartRef = useRef<number | null>(null);
     const calibrationDuration = 3000; // 4 seconds
+
+    // react state variable tracking fps
+    const lastTimeRef = useRef<number | null>(null);
+    const fpsRef = useRef<number>(0);
 
     // Initialize FaceLandmarker
     useEffect(() => {
@@ -61,7 +70,8 @@ export default function Camera({ debug = false, onResults, onCameraStateChange }
             });
 
             setRunning(true);
-            setCalibrating(true);
+            // TODO: set calibrating true
+            // setCalibrating(true); 
             onCameraStateChange(true);
 
             // Match canvas size to video
@@ -132,6 +142,27 @@ export default function Camera({ debug = false, onResults, onCameraStateChange }
 
             let results;
             try {
+
+                // update fps
+                const now = performance.now();
+
+                if (lastTimeRef.current !== null) {
+                    const delta = now - lastTimeRef.current;
+
+                    // Instant FPS
+                    const instantFps = 1000 / delta;
+
+                    // Smooth FPS (EMA)
+                    fpsRef.current = fpsRef.current === 0
+                        ? instantFps
+                        : fpsRef.current * 0.9 + instantFps * 0.1;
+
+                    // Send upward (optional chaining prevents crash)
+                    onFpsChange?.(fpsRef.current);
+                }
+
+                lastTimeRef.current = now;
+
                 // Check to see if eyes are detected
                 // const faceDetector = getFaceDetector();
 
@@ -162,7 +193,7 @@ export default function Camera({ debug = false, onResults, onCameraStateChange }
                     const landmarks = results.faceLandmarks[0];
 
                     console.log('calibrating');
-                    
+
                     cropEye(video, landmarks, true);
                     cropEye(video, landmarks, false);
 
@@ -191,6 +222,57 @@ export default function Camera({ debug = false, onResults, onCameraStateChange }
 
             // Clear overlay
             ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Calculate head pose
+            if (results.facialTransformationMatrixes?.length) {
+                const matrixData = results.facialTransformationMatrixes[0].data;
+
+                // MediaPipe returns a 4x4 column-major matrix
+                // Extract rotation part (upper-left 3x3)
+                const r00 = matrixData[0];
+                // const r01 = matrixData[4];
+                // const r02 = matrixData[8];
+
+                const r10 = matrixData[1];
+                const r11 = matrixData[5];
+                const r12 = matrixData[9];
+
+                const r20 = matrixData[2];
+                const r21 = matrixData[6];
+                const r22 = matrixData[10];
+
+                let pitch: number;
+                let yaw: number;
+                let roll: number;
+
+                // Robust extraction (handles gimbal lock)
+                if (r20 < 1) {
+                    if (r20 > -1) {
+                        pitch = Math.atan2(r21, r22);
+                        roll = Math.asin(-r20);
+                        yaw = Math.atan2(r10, r00);
+                    } else {
+                        // r20 == -1
+                        roll = Math.PI / 2;
+                        pitch = -Math.atan2(-r12, r11);
+                        yaw = 0;
+                    }
+                } else {
+                    // r20 == 1
+                    roll = -Math.PI / 2;
+                    pitch = Math.atan2(-r12, r11);
+                    yaw = 0;
+                }
+
+                // Convert radians to degrees
+                pitch = pitch * 180 / Math.PI;
+                yaw = yaw * 180 / Math.PI;
+                roll = roll * 180 / Math.PI;
+
+                onHeadPoseChange?.({ pitch, yaw, roll });
+
+            }
+
 
             // Draw landmarks on overlay
             if (results.faceLandmarks) {

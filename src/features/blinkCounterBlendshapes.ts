@@ -15,8 +15,13 @@ export class BlinkCounterBlendshapes {
     // private readonly CLOSE_THRESHOLD_LOOK_DOWN = 0.6;
     // private readonly OPEN_THRESHOLD_LOOK_DOWN = 0.5;
 
-    update(blendShapes: any[]): number {
-        if (!blendShapes?.length) return this.blinkCount;
+    update(blendShapes: any[]): {count: number, blinkDetected: boolean } {
+        let didBlinkThisFrame = false;
+        
+        if (!blendShapes?.length) return {
+            count: this.blinkCount,
+            blinkDetected: didBlinkThisFrame
+        };
 
         const categories = blendShapes[0].categories;
 
@@ -31,7 +36,6 @@ export class BlinkCounterBlendshapes {
         const avgBlink = (left + right) / 2;
 
         // console.log(avgBlink);
-
         // const lookDownLeft = categories.find(
         //     (c: any) => c.categoryName === "eyeLookDownLeft"
         // )?.score ?? 0;
@@ -39,28 +43,25 @@ export class BlinkCounterBlendshapes {
         // const lookDownRight = categories.find(
         //     (c: any) => c.categoryName === "eyeLookDownRight"
         // )?.score ?? 0;
-
         // const avgLookDown = (lookDownLeft + lookDownRight) / 2;
 
-        // if (avgLookDown > this.THRESHOLD_LOOK_DOWN) {
-        //     console.log('Looking down');
-        //     console.log(avgBlink);
-        // }
-        
-        // This does not work when head tilts up
-
+        // based on blinks
         // Eye just closed
         if (!this.isEyeClosed && avgBlink > this.CLOSE_THRESHOLD) {
             this.isEyeClosed = true;
         }
 
-        // Eye reopened → count blink
+        // Eye reopened so count blink
         if (this.isEyeClosed && avgBlink < this.OPEN_THRESHOLD) {
             this.isEyeClosed = false;
             this.blinkCount++;
+            didBlinkThisFrame = true;
         }
 
-        return this.blinkCount;
+        return {
+            count: this.blinkCount,
+            blinkDetected: didBlinkThisFrame
+        };
     }
 
     getCount() {
