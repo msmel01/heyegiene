@@ -5,11 +5,11 @@ with the model's confidence score for each
 */
 import './blendShapesPanel.css';
 
-type BlendShapesPanelProps = {
+type blendShapesPanelProps = {
     blendShapes: any[]; // array of detected face blendshapes from faceLandmarker.faceBlendshapes
 };
 
-export default function BlendShapesPanel({ blendShapes }: BlendShapesPanelProps) {
+export default function blendShapesPanel({ blendShapes }: blendShapesPanelProps) {
     if (!blendShapes.length) return null; // nothing to display
 
     const categories = blendShapes[0].categories || []; // categories for first detected face

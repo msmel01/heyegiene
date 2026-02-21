@@ -6,7 +6,7 @@ import type { FaceLandmarkerResult } from "@mediapipe/tasks-vision";
 import { createFaceLandmarker, getFaceLandmarker } from "../../mediapipe/faceLandmarker.ts";
 import { createFaceDetector, getFaceDetector } from "../../mediapipe/faceDetector.ts";
 import { cropEye } from "../../utils/cropEye.ts";
-import BlendShapesPanel from "./BlendShapesPanel.tsx";
+import blendShapesPanel from "./blendShapesPanel.tsx";
 
 // TODO: make a separate module for headpose calculations
 type HeadPose = {
@@ -339,7 +339,7 @@ export default function Camera({ debug = false, onResults, onCameraStateChange, 
                 {running ? "Stop Webcam" : "Start Webcam"}
             </button>
 
-            {debug && <BlendShapesPanel blendShapes={blendShapes} />}
+            {debug && <blendShapesPanel blendShapes={blendShapes} />}
 
             {/* {!running && (
                 <button
