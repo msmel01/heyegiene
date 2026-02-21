@@ -27,18 +27,12 @@ export class BlinkCounterEAR {
     // private readonly EAR_THRESHOLD = 0.2;
 
     // blink detection threshold
-    private readonly PERCENT_THRESHOLD = 0.6; // count as blink if ear drops to 60% of previous max EAR
-    private MIN_CONSECUTIVE_FRAMES = 1;
+    private readonly PERCENT_THRESHOLD = 0.60; // count as blink if ear drops to 60% of previous max EAR
+    private MIN_CONSECUTIVE_FRAMES = 2;
     private frameCounter = 0;
 
     // rolling max normalization
     private maxEAR = 0;
-
-    // private WINDOW_SIZE = 10; // previously 30 frames
-    // private earWindow: number[] = [];
-
-    // private consecutiveClosedFrames = 0;
-    // private REQUIRED_FRAMES = 3; // TODO: want to dynamically set this based on fps
 
     private l2Norm(p1: { x: number; y: number; z?: number }, p2: { x: number; y: number; z?: number }): number {
         const dx = p1.x - p2.x;
@@ -48,26 +42,9 @@ export class BlinkCounterEAR {
         return Math.sqrt(dx * dx + dy * dy + dz * dz);
     }
 
-    // private computePercentile(values: number[], percentile: number): number {
-    //     const sorted = [...values].sort((a, b) => a - b);
-    //     const index = Math.floor(percentile * sorted.length);
-    //     return sorted[index];
-    // }
-
-    // private updateWindow(currentEAR: number) {
-    //     this.earWindow.push(currentEAR);
-
-    //     if (this.earWindow.length > this.WINDOW_SIZE) {
-    //         this.earWindow.shift();
-    //     }
-    // }
-
     updateRequiredFrames(fps: number) {
         // dynamically set this
-        this.MIN_CONSECUTIVE_FRAMES = Math.max(2,Math.round(fps * 0.1));
-
-        // this.REQUIRED_CONSECUTIVE_FRAMES = Math.round(fps * 0.1) // 50 ms worth of frames
-        // console.log(`Updated required consecutive frames, ${this.REQUIRED_CONSECUTIVE_FRAMES}!`);
+        this.MIN_CONSECUTIVE_FRAMES = Math.max(2,Math.round(fps * 0.15)); // 150 ms minimum
     }
 
     private calculateEAR(landmarks: any[], indices: number[]): number {
@@ -92,29 +69,17 @@ export class BlinkCounterEAR {
 
         const leftEAR = this.calculateEAR(face, [33, 160, 158, 133, 153, 144]);
         const rightEAR = this.calculateEAR(face, [362, 385, 387, 263, 373, 380]);
-
+            
         const avgEAR = (leftEAR + rightEAR) / 2;
-        // console.log(`Average eye aspect ratio is ${avgEAR}!`);
-
-        // if (avgEAR < this.EAR_THRESHOLD) {
-        //     this.frameCounter += 1;
-        // } else {
-        //     if (this.frameCounter >= this.REQUIRED_CONSECUTIVE_FRAMES) {
-        //         this.blinkCount += 1;
-        //         this.lastBlinkTime = Date.now();
-        //     }
-        //     this.frameCounter = 0;
-        // }
 
         // rolling max normalization
         this.maxEAR = Math.max(this.maxEAR * 0.995, avgEAR);
-        // console.log(`Maximum eye aspect ratio is ${this.maxEAR}!`);
         const normalizedEAR = avgEAR / this.maxEAR;
-        // console.log(`Normalized eye aspect ratio is ${normalizedEAR}!`);
 
         if (normalizedEAR < this.PERCENT_THRESHOLD) { // changed from normalizedEAR < this.PERCENT_THRESHOLD
             this.frameCounter++;
-        } else {
+
+        } else { // eye reopened
             if (this.frameCounter >= this.MIN_CONSECUTIVE_FRAMES) {
                 this.blinkCount++;
                 this.lastBlinkTime = Date.now();
@@ -133,53 +98,6 @@ export class BlinkCounterEAR {
         //     this.isEyeClosed = false;
         //     this.blinkCount++;
         //     this.lastBlinkTime = Date.now()
-        // }
-
-        // adaptive thresholding based on rolling frame EAR baseline
-
-        // if (!this.isEyeClosed) {
-        //     this.updateWindow(avgEAR);
-        // }
-
-        // // this.updateWindow(avgEAR);
-
-        // if (this.earWindow.length < this.WINDOW_SIZE) {
-        //     return this.blinkCount; // wait until window stabilizes
-        // }
-
-        // const threshold = this.computePercentile(this.earWindow, 0.25);
-
-        // const closeThreshold = threshold * 0.85;
-        // const openThreshold = threshold * 0.95;
-
-        // console.log(threshold);
-
-        // if (avgEAR < threshold) {
-        //     this.consecutiveClosedFrames++;
-        // } else {
-        //     if (this.consecutiveClosedFrames >= this.REQUIRED_FRAMES) {
-        //         this.blinkCount++;
-        //         this.lastBlinkTime = Date.now();
-        //     }
-        //     this.consecutiveClosedFrames = 0;
-        // }
-
-        // if (!this.isEyeClosed && avgEAR < closeThreshold) {
-        //     this.isEyeClosed = true;
-        //     this.consecutiveClosedFrames = 1;
-        // }
-        // else if (this.isEyeClosed) {
-        //     if (avgEAR < closeThreshold) {
-        //         this.consecutiveClosedFrames++;
-        //     }
-        //     else if (avgEAR > openThreshold) {
-        //         if (this.consecutiveClosedFrames >= this.REQUIRED_FRAMES) {
-        //             this.blinkCount++;
-        //             this.lastBlinkTime = Date.now();
-        //         }
-        //         this.isEyeClosed = false;
-        //         this.consecutiveClosedFrames = 0;
-        //     }
         // }
 
         return {
@@ -202,8 +120,6 @@ export class BlinkCounterEAR {
 
     reset() {
         this.blinkCount = 0;
-        // this.isEyeClosed = false;
-        // this.lastBlinkTime = null;
         this.lastBlinkTime = Date.now();
         this.frameCounter = 0;
         this.maxEAR = 0;

@@ -3,7 +3,7 @@ For debug purposes
 Displays the panel of faceBlendshapes categories (e.g. mouthSmileLeft, eyeBlinkRight, etc.)
 with the model's confidence score for each
 */
-import './BlendShapesPanel.css';
+import './blendShapesPanel.css';
 
 type BlendShapesPanelProps = {
     blendShapes: any[]; // array of detected face blendshapes from faceLandmarker.faceBlendshapes
